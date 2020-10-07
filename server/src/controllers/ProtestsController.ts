@@ -6,67 +6,95 @@ export default class ProtestsController {
   async index(request: Request, response: Response) {
     const filters = request.query;
 
-    const number_protest = filters.number_protest as string;
-    const customer_id = filters.customer_id as string;
+    const protests_number = filters.protests_number as string;
+    const customers_id = filters.customers_id as string;
+    const customers_name = filters.customers_name as string;
 
-    if (filters.number_protest) {
+    if (filters.protests_number) {
       const protests = await db('protests')
-        .where('protests.number_protest', '=', number_protest)
-        .join('customers', 'protests.customer_id', '=', 'customers.id')
-        .select(['protests.*', 'customers.name']);
+        .where('protests.protests_number', '=', protests_number)
+        .join('customers', 'protests.customers_id', '=', 'customers.customers_id')
+        .select(['protests.*', 'customers.customers_name']);
       response.json(protests);
-    } else if (filters.customer_id) {
+    } else if (filters.customers_id) {
       const customers = await db('customers')
-        .where('customers.id', '=', customer_id)
-        .join('protests', 'protests.customer_id', '=', 'customers.id')
-        .select(['protests.*', 'customers.name']);
+        .where('customers.customers_id', '=', customers_id)
+        .join('protests', 'protests.customers_id', '=', 'customers.customers_id')
+        .select(['protests.*', 'customers.customers_name']);
+      response.json(customers);
+    } else if (filters.customers_name) {
+      const customers = await db('customers')
+        .where('customers.customers_name', '=', customers_name)
+        .join('protests', 'protests.customers_id', '=', 'customers.customers_id')
+        .select(['protests.*', 'customers.customers_name'])
+        .orderBy('protests_number');
       response.json(customers);
     } else {
       const protests = await db('protests')
-        .join('customers', 'protests.customer_id', '=', 'customers.id')
-        .select(['protests.*', 'customers.name'])
-        .orderBy('number_protest');
+        .join('customers', 'protests.customers_id', '=', 'customers.customers_id')
+        .select(['protests.*', 'customers.customers_name'])
+        .orderBy('protests_number');
       response.json(protests);
     };
   };
 
   async create(request: Request, response: Response) {
     const {
-      number_protest,
+      protests_number,
       customers_id,
       customers_name,
-      cost_protest,
-      creation_date,
-      send_date,
-      return_date,
-      payment_date,
-      situation,
+      protests_cost,
+      protests_creation,
+      protests_send,
+      protests_return,
+      protests_payment,
+      protests_situation,
     } = request.body;
     
     const trx = await db.transaction();
     
     try {
-      const insertedCustomersIds = await trx('customers').insert({
-        id: customers_id,
-        name: customers_name,
-      });
-      
-      const customer_id = insertedCustomersIds[0];
-      
-      await trx('protests').insert({
-        number_protest,
-        customer_id,
-        cost_protest,
-        creation_date,
-        send_date,
-        return_date,
-        payment_date,
-        situation,
-      });
-      
-      await trx.commit();
-      
-      return response.status(201).send();
+      const customers = await trx('customers')
+        .select('customers_id');
+
+      const customersExists = customers.find(id => id.customers_id == customers_id);
+
+      if (!customersExists) {
+        await trx('customers').insert({
+          customers_id,
+          customers_name,
+        });
+  
+        await trx('protests').insert({
+          protests_number,
+          customers_id,
+          protests_cost,
+          protests_creation,
+          protests_send,
+          protests_return,
+          protests_payment,
+          protests_situation,
+        });
+          
+        await trx.commit();
+  
+        return response.status(201).send();
+      } else {
+        await trx('protests').insert({
+          protests_number,
+          customers_id,
+          protests_cost,
+          protests_creation,
+          protests_send,
+          protests_return,
+          protests_payment,
+          protests_situation,
+        });
+        
+        await trx.commit();
+        
+        return response.status(201).send();
+      }
     } catch (err) {
       console.log(err);
     
