@@ -57,7 +57,7 @@ export default class ProtestsController {
       const customers = await trx('customers')
         .select('customers_id');
 
-      const customersExists = customers.find(id => id.customers_id == customers_id);
+      const customersExists  = customers.find(id => id.customers_id == customers_id);
 
       if (!customersExists) {
         await trx('customers').insert({
