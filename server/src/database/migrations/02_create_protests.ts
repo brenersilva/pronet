@@ -15,7 +15,12 @@ export async function up(knex: Knex) {
     table.date('protests_send').nullable();
     table.date('protests_return').nullable();
     table.date('protests_payment').nullable();
-    table.string('protests_situation').notNullable();
+    table.integer('situations_id')
+      .notNullable()
+      .references('situations_id')
+      .inTable('situations')
+      .onUpdate('CASCADE')
+      .onDelete('CASCADE')
   });
 };
 
